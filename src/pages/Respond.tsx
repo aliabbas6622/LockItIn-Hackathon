@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
+import Header from '../components/Header';
 
 export default function Respond() {
   const { id } = useParams();
@@ -11,13 +12,20 @@ export default function Respond() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [socket, setSocket] = useState<any>(null);
+  const lastTypingTimeRef = useRef<number>(0);
 
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
         const res = await fetch(`/api/decisions/${id}/questions`);
+        if (!res.ok) throw new Error('Failed to fetch questions');
         const data = await res.json();
-        setQuestions(data);
+        if (Array.isArray(data)) {
+          setQuestions(data);
+        } else {
+          console.error('Expected array of questions, got:', data);
+          setQuestions([]);
+        }
       } catch (error) {
         console.error(error);
       } finally {
@@ -37,7 +45,11 @@ export default function Respond() {
 
   const handleTyping = () => {
     if (socket) {
-      socket.emit('typing', id);
+      const now = Date.now();
+      if (now - lastTypingTimeRef.current > 2000) {
+        socket.emit('typing', id);
+        lastTypingTimeRef.current = now;
+      }
     }
   };
 
@@ -63,10 +75,12 @@ export default function Respond() {
   if (loading) return <div className="p-8 text-center">Loading...</div>;
 
   return (
-    <div className="bg-[#f7f8f6] dark:bg-[#192210] font-sans min-h-screen flex flex-col items-center p-6">
-      <div className="w-full max-w-2xl bg-white dark:bg-[#232e1a] rounded-2xl shadow-sm p-8 border border-[#edf3e7] dark:border-white/5">
-        <h1 className="text-3xl font-serif font-bold mb-6 text-[#141b0d] dark:text-white">Weigh In</h1>
-        <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="bg-[#f7f8f6] dark:bg-[#192210] font-sans min-h-screen flex flex-col antialiased">
+      <Header />
+      <main className="flex-grow flex flex-col items-center p-6 lg:p-12">
+        <div className="w-full max-w-2xl bg-white dark:bg-[#232e1a] rounded-2xl shadow-sm p-8 border border-[#edf3e7] dark:border-white/5 animate-fade-in">
+          <h1 className="text-3xl font-serif font-bold mb-6 text-[#141b0d] dark:text-white italic">Weigh In</h1>
+          <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-semibold mb-2 text-[#141b0d] dark:text-white">Your Name</label>
             <input
@@ -78,20 +92,24 @@ export default function Respond() {
             />
           </div>
 
-          {questions.map((q) => (
-            <div key={q.id}>
-              <label className="block text-sm font-semibold mb-2 text-[#141b0d] dark:text-white">{q.text}</label>
-              <textarea
-                required
-                value={answers[q.id] || ''}
-                onChange={(e) => {
-                  setAnswers({ ...answers, [q.id]: e.target.value });
-                  handleTyping();
-                }}
-                className="w-full p-3 rounded-lg border border-[#edf3e7] dark:border-white/10 bg-[#f7f8f6] dark:bg-[#192210]/50 text-[#141b0d] dark:text-white min-h-[100px]"
-              />
-            </div>
-          ))}
+          {questions.length > 0 ? (
+            questions.map((q) => (
+              <div key={q.id}>
+                <label className="block text-sm font-semibold mb-2 text-[#141b0d] dark:text-white">{q.text}</label>
+                <textarea
+                  required
+                  value={answers[q.id] || ''}
+                  onChange={(e) => {
+                    setAnswers({ ...answers, [q.id]: e.target.value });
+                    handleTyping();
+                  }}
+                  className="w-full p-3 rounded-lg border border-[#edf3e7] dark:border-white/10 bg-[#f7f8f6] dark:bg-[#192210]/50 text-[#141b0d] dark:text-white min-h-[100px]"
+                />
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-4 text-slate-500">No questions found for this decision.</div>
+          )}
 
           <button
             type="submit"
@@ -102,6 +120,7 @@ export default function Respond() {
           </button>
         </form>
       </div>
+      </main>
     </div>
   );
 }

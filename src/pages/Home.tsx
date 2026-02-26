@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Header from '../components/Header';
 
 export default function Home() {
   const [description, setDescription] = useState('');
@@ -26,24 +27,7 @@ export default function Home() {
 
   return (
     <div className="bg-[#f7f8f6] dark:bg-[#192210] font-sans min-h-screen flex flex-col antialiased selection:bg-[#73d411]/30">
-      <header className="w-full flex items-center justify-between border-b border-[#edf3e7] dark:border-white/10 px-6 py-4 lg:px-12 bg-white/50 dark:bg-[#232e1a]/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="flex items-center gap-3 text-[#141b0d] dark:text-white">
-          <div className="size-8 text-[#73d411] flex items-center justify-center">
-            <span className="material-symbols-outlined text-3xl">psychology_alt</span>
-          </div>
-          <h2 className="text-lg font-bold tracking-tight">Decision Assistant</h2>
-        </div>
-        <div className="flex items-center gap-6">
-          <nav className="hidden md:flex items-center gap-8">
-            <a className="text-[#141b0d] dark:text-gray-200 text-sm font-medium hover:text-[#73d411] transition-colors" href="#">Home</a>
-            <a className="text-[#5c6b4f] dark:text-gray-400 text-sm font-medium hover:text-[#73d411] transition-colors" href="#">About</a>
-            <a className="text-[#5c6b4f] dark:text-gray-400 text-sm font-medium hover:text-[#73d411] transition-colors" href="#">History</a>
-          </nav>
-          <button className="bg-[#73d411] hover:bg-[#65bd0f] text-[#141b0d] text-sm font-bold py-2.5 px-6 rounded-full transition-colors shadow-sm active:scale-95">
-            Log In
-          </button>
-        </div>
-      </header>
+      <Header />
 
       <main className="flex-grow flex items-center justify-center p-4 sm:p-6 lg:p-12">
         <div className="w-full max-w-3xl animate-fade-in-up">

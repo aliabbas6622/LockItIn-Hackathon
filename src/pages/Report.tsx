@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { analyzeResponses } from '../services/geminiService';
+import Header from '../components/Header';
 
 export default function Report() {
   const { id } = useParams();
@@ -7,18 +9,59 @@ export default function Report() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchAnalysis = async () => {
+    const fetchAndAnalyze = async () => {
       try {
-        const res = await fetch(`/api/decisions/${id}/analyze`, { method: 'POST' });
-        const data = await res.json();
-        setAnalysis(data);
+        // 1. Check if analysis already exists
+        const existingRes = await fetch(`/api/decisions/${id}/analysis`);
+        if (existingRes.ok) {
+          const existing = await existingRes.json();
+          if (existing && !existing.error) {
+            setAnalysis(existing);
+            setLoading(false);
+            return;
+          }
+        }
+
+        // 2. Gather data for analysis
+        const [decisionRes, questionsRes, participantsRes] = await Promise.all([
+          fetch(`/api/decisions/${id}`),
+          fetch(`/api/decisions/${id}/questions`),
+          fetch(`/api/decisions/${id}/participants`)
+        ]);
+
+        if (!decisionRes.ok || !questionsRes.ok || !participantsRes.ok) {
+          throw new Error('Failed to fetch data for analysis');
+        }
+
+        const decision = await decisionRes.json();
+        const questions = await questionsRes.json();
+        const participants = await participantsRes.json();
+
+        // Construct context
+        const context = `
+          Decision: ${decision.description}
+          Questions: ${JSON.stringify(questions)}
+          Participants: ${JSON.stringify(participants)}
+        `;
+
+        // 3. Generate analysis via Gemini
+        const analysisData = await analyzeResponses(context);
+
+        // 4. Save to backend
+        await fetch(`/api/decisions/${id}/analysis`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(analysisData),
+        });
+
+        setAnalysis(analysisData);
       } catch (error) {
         console.error(error);
       } finally {
         setLoading(false);
       }
     };
-    fetchAnalysis();
+    fetchAndAnalyze();
   }, [id]);
 
   if (loading) {
@@ -32,101 +75,85 @@ export default function Report() {
   if (!analysis) return null;
 
   return (
-    <div className="bg-[#fbfbf8] dark:bg-[#192210] font-display text-slate-900 dark:text-slate-100 min-h-screen">
+    <div className="bg-[#fcfcfc] dark:bg-[#192210] font-sans text-slate-900 dark:text-slate-100 min-h-screen">
       <div className="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
         <div className="layout-container flex h-full grow flex-col">
-          <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-[#739a4c]/10 px-6 md:px-20 py-4 max-w-[1200px] mx-auto w-full">
-            <div className="flex items-center gap-3 text-[#739a4c]">
-              <div className="size-6">
-                <svg fill="currentColor" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                  <path clipRule="evenodd" d="M24 18.4228L42 11.475V34.3663C42 34.7796 41.7457 35.1504 41.3601 35.2992L24 42V18.4228Z" fillRule="evenodd"></path>
-                  <path clipRule="evenodd" d="M24 8.18819L33.4123 11.574L24 15.2071L14.5877 11.574L24 8.18819ZM9 15.8487L21 20.4805V37.6263L9 32.9945V15.8487ZM27 37.6263V20.4805L39 15.8487V32.9945L27 37.6263ZM25.354 2.29885C24.4788 1.98402 23.5212 1.98402 22.646 2.29885L4.98454 8.65208C3.7939 9.08038 3 10.2097 3 11.475V34.3663C3 36.0196 4.01719 37.5026 5.55962 38.098L22.9197 44.7987C23.6149 45.0671 24.3851 45.0671 25.0803 44.7987L42.4404 38.098C43.9828 37.5026 45 36.0196 45 34.3663V11.475C45 10.2097 44.2061 9.08038 43.0155 8.65208L25.354 2.29885Z" fillRule="evenodd"></path>
-                </svg>
-              </div>
-              <h2 className="text-slate-900 dark:text-slate-100 text-xl font-bold leading-tight tracking-tight">LockItIn</h2>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-xs font-semibold uppercase tracking-widest text-[#739a4c]/60">Step 4 of 4</span>
-              <button className="flex items-center justify-center rounded-full h-10 w-10 bg-[#739a4c]/10 text-[#739a4c] hover:bg-[#739a4c]/20 transition-colors">
-                <span className="material-symbols-outlined">share</span>
-              </button>
-            </div>
-          </header>
+          <Header />
 
-          <main className="flex-1 flex flex-col items-center px-6 py-12 md:py-20 max-w-[800px] mx-auto w-full">
-            <div className="w-full max-w-md mb-16">
-              <div className="flex justify-between items-end mb-2">
-                <span className="text-[#739a4c] text-xs font-bold uppercase tracking-widest">Analysis Complete</span>
-                <span className="text-slate-400 text-xs font-medium">100%</span>
+          <main className="flex-1 flex flex-col items-center px-4 py-12 md:py-20 max-w-[800px] mx-auto w-full">
+            <div className="w-full max-w-[500px] mb-16">
+              <div className="flex justify-between items-end mb-3">
+                <span className="text-[#73d411] text-[12px] font-bold uppercase tracking-[0.1em]">Analysis Complete</span>
+                <span className="text-[#8a99a8] text-[13px] font-medium">100%</span>
               </div>
-              <div className="h-1.5 w-full bg-[#739a4c]/10 rounded-full overflow-hidden">
-                <div className="h-full bg-[#739a4c] w-full rounded-full"></div>
+              <div className="h-1.5 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
+                <div className="h-full bg-[#73d411] w-full rounded-full"></div>
               </div>
             </div>
 
             <div className="text-center mb-16">
-              <h3 className="text-[#739a4c] text-sm font-bold uppercase tracking-[0.2em] mb-4">The Verdict</h3>
-              <h1 className="font-serif text-5xl md:text-7xl text-slate-900 dark:text-slate-100 leading-tight italic">
+              <h3 className="text-[#73d411] text-[13px] font-bold uppercase tracking-[0.2em] mb-6">The Verdict</h3>
+              <h1 className="font-serif text-5xl md:text-[72px] text-[#0a1128] dark:text-white leading-[1.1] italic font-bold tracking-tight">
                 {analysis.verdict_title}
               </h1>
-              <p className="text-slate-500 dark:text-slate-400 mt-6 text-lg max-w-lg mx-auto leading-relaxed">
+              <p className="text-[#5c6b7b] dark:text-gray-400 mt-8 text-[17px] max-w-[500px] mx-auto leading-relaxed">
                 {analysis.verdict_description}
               </p>
             </div>
 
-            <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-8 mb-20 p-8 rounded-2xl bg-white dark:bg-slate-800/30 border border-[#739a4c]/10 shadow-sm">
+            <div className="w-full max-w-[700px] grid grid-cols-1 md:grid-cols-3 gap-8 mb-20 p-8 rounded-[24px] bg-white dark:bg-[#232e1a] border border-black/[0.06] dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
               <div className="space-y-3">
-                <div className="flex justify-between text-xs font-bold text-slate-500 uppercase tracking-tighter">
+                <div className="flex justify-between text-[11px] font-bold text-[#5c6b7b] dark:text-gray-400 uppercase tracking-[0.05em]">
                   <span>Budget</span>
-                  <span className="text-[#739a4c]">{analysis.budget_score}%</span>
+                  <span className="text-[#73d411]">{analysis.budget_score}%</span>
                 </div>
-                <div className="h-1 bg-[#739a4c]/10 rounded-full">
-                  <div className="h-full bg-[#739a4c] rounded-full" style={{ width: `${analysis.budget_score}%` }}></div>
+                <div className="h-1.5 bg-black/5 dark:bg-white/5 rounded-full">
+                  <div className="h-full bg-[#73d411] rounded-full" style={{ width: `${analysis.budget_score}%` }}></div>
                 </div>
               </div>
               <div className="space-y-3">
-                <div className="flex justify-between text-xs font-bold text-slate-500 uppercase tracking-tighter">
+                <div className="flex justify-between text-[11px] font-bold text-[#5c6b7b] dark:text-gray-400 uppercase tracking-[0.05em]">
                   <span>Time Efficiency</span>
-                  <span className="text-[#739a4c]">{analysis.time_score}%</span>
+                  <span className="text-[#73d411]">{analysis.time_score}%</span>
                 </div>
-                <div className="h-1 bg-[#739a4c]/10 rounded-full">
-                  <div className="h-full bg-[#739a4c] rounded-full" style={{ width: `${analysis.time_score}%` }}></div>
+                <div className="h-1.5 bg-black/5 dark:bg-white/5 rounded-full">
+                  <div className="h-full bg-[#73d411] rounded-full" style={{ width: `${analysis.time_score}%` }}></div>
                 </div>
               </div>
               <div className="space-y-3">
-                <div className="flex justify-between text-xs font-bold text-slate-500 uppercase tracking-tighter">
+                <div className="flex justify-between text-[11px] font-bold text-[#5c6b7b] dark:text-gray-400 uppercase tracking-[0.05em]">
                   <span>Group Size Fit</span>
-                  <span className="text-[#739a4c]">{analysis.group_size_score}%</span>
+                  <span className="text-[#73d411]">{analysis.group_size_score}%</span>
                 </div>
-                <div className="h-1 bg-[#739a4c]/10 rounded-full">
-                  <div className="h-full bg-[#739a4c] rounded-full" style={{ width: `${analysis.group_size_score}%` }}></div>
+                <div className="h-1.5 bg-black/5 dark:bg-white/5 rounded-full">
+                  <div className="h-full bg-[#73d411] rounded-full" style={{ width: `${analysis.group_size_score}%` }}></div>
                 </div>
               </div>
             </div>
 
-            <div className="w-full max-w-2xl mb-16">
-              <h4 className="text-slate-900 dark:text-slate-100 text-xl font-bold mb-8 border-l-4 border-[#739a4c] pl-4">Why this works</h4>
-              <div className="grid gap-6">
+            <div className="w-full max-w-[600px] mb-16">
+              <h4 className="text-[#0a1128] dark:text-white text-[22px] font-bold mb-8 border-l-4 border-[#73d411] pl-5 leading-none">Why this works</h4>
+              <div className="grid gap-8">
                 {analysis.insights?.map((insight: any, idx: number) => (
-                  <div key={idx} className="flex gap-4">
-                    <div className="flex-shrink-0 size-6 flex items-center justify-center rounded-full bg-[#739a4c]/10 text-[#739a4c] mt-1">
-                      <span className="material-symbols-outlined text-sm">check</span>
+                  <div key={idx} className="flex gap-5">
+                    <div className="flex-shrink-0 size-6 flex items-center justify-center rounded-full bg-[#f2f7ec] dark:bg-[#73d411]/10 text-[#73d411] mt-0.5">
+                      <span className="material-symbols-outlined text-[14px] font-bold">check</span>
                     </div>
-                    <div>
-                      <p className="font-bold text-slate-800 dark:text-slate-200">{insight.title}</p>
-                      <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{insight.description}</p>
+                    <div className="flex flex-col gap-1.5">
+                      <p className="font-bold text-[#0a1128] dark:text-white text-[16px]">{insight.title}</p>
+                      <p className="text-[#5c6b7b] dark:text-gray-400 text-[15px] leading-relaxed">{insight.description}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="w-full flex flex-col items-center gap-4">
-              <button className="w-full max-w-md bg-[#739a4c] hover:bg-[#739a4c]/90 text-white font-bold py-4 px-8 rounded-xl transition-all shadow-lg shadow-[#739a4c]/20 flex items-center justify-center gap-2 group">
+            <div className="w-full flex flex-col items-center gap-6">
+              <button className="w-full max-w-[400px] bg-[#6a994e] hover:bg-[#5a8342] text-white font-bold py-4.5 px-8 rounded-[16px] transition-all shadow-[0_8px_20px_rgba(106,153,78,0.2)] hover:shadow-[0_8px_25px_rgba(106,153,78,0.3)] hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 group text-[16px]">
                 <span>Confirm & Share Results</span>
-                <span className="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                <span className="material-symbols-outlined text-[20px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
               </button>
-              <button className="text-slate-400 hover:text-[#739a4c] text-sm font-medium transition-colors">
+              <button className="text-[#8a99a8] hover:text-[#5c6b7b] dark:hover:text-gray-300 text-[14px] font-medium transition-colors">
                 Wait, let's adjust the parameters
               </button>
             </div>
