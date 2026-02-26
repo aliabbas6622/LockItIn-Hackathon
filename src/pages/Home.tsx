@@ -16,7 +16,7 @@ export default function Home() {
         body: JSON.stringify({ description }),
       });
       const data = await res.json();
-      navigate(\`/decision/\${data.id}/questions\`);
+      navigate(`/decision/${data.id}/questions`);
     } catch (error) {
       console.error(error);
     } finally {

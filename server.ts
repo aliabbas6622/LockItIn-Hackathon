@@ -43,7 +43,7 @@ async function startServer() {
     try {
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: \`Generate 6-8 contextual questions to help a group make this decision: "\${decision.description}". The questions should be categorized (e.g., Budget, Timeframe, Preference Scale, Group Dynamic, Risk Tolerance). Return the questions as a JSON array of objects with 'text' and 'category' properties.\`,
+        contents: `Generate 6-8 contextual questions to help a group make this decision: "${decision.description}". The questions should be categorized (e.g., Budget, Timeframe, Preference Scale, Group Dynamic, Risk Tolerance). Return the questions as a JSON array of objects with 'text' and 'category' properties.`,
         config: {
           responseMimeType: 'application/json',
           responseSchema: {
@@ -111,25 +111,25 @@ async function startServer() {
     const decision = db.prepare('SELECT * FROM decisions WHERE id = ?').get(id) as any;
     const questions = db.prepare('SELECT * FROM questions WHERE decision_id = ?').all(id) as any[];
     const participants = db.prepare('SELECT * FROM participants WHERE decision_id = ?').all(id) as any[];
-    const responses = db.prepare(\`
+    const responses = db.prepare(`
       SELECT r.question_id, r.answer, p.name 
       FROM responses r 
       JOIN participants p ON r.participant_id = p.id 
       WHERE p.decision_id = ?
-    \`).all(id) as any[];
+    `).all(id) as any[];
 
-    const context = \`
-      Decision: \${decision.description}
-      Questions: \${JSON.stringify(questions)}
-      Participants: \${JSON.stringify(participants)}
-      Responses: \${JSON.stringify(responses)}
-    \`;
+    const context = `
+      Decision: ${decision.description}
+      Questions: ${JSON.stringify(questions)}
+      Participants: ${JSON.stringify(participants)}
+      Responses: ${JSON.stringify(responses)}
+    `;
 
     try {
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: \`Analyze the group's responses and provide a final recommendation for the decision.
-        Context: \${context}
+        contents: `Analyze the group's responses and provide a final recommendation for the decision.
+        Context: ${context}
         Return a JSON object with:
         - verdict_title: A short, catchy title for the recommendation
         - verdict_description: A 1-2 sentence description of why this is the best choice
@@ -137,7 +137,7 @@ async function startServer() {
         - time_score: 0-100 score for time efficiency (if applicable, else 100)
         - group_size_score: 0-100 score for group size fit (if applicable, else 100)
         - insights: An array of 3 objects, each with 'title' and 'description' explaining why this works.
-        \`,
+        `,
         config: {
           responseMimeType: 'application/json',
           responseSchema: {
@@ -168,10 +168,10 @@ async function startServer() {
       const analysisData = JSON.parse(response.text || '{}');
       const analysisId = uuidv4();
       
-      db.prepare(\`
+      db.prepare(`
         INSERT INTO analysis (id, decision_id, verdict_title, verdict_description, budget_score, time_score, group_size_score, insights)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      \`).run(
+      `).run(
         analysisId, id, analysisData.verdict_title, analysisData.verdict_description, 
         analysisData.budget_score, analysisData.time_score, analysisData.group_size_score, 
         JSON.stringify(analysisData.insights)
@@ -217,7 +217,7 @@ async function startServer() {
   }
 
   httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(\`Server running on http://localhost:\${PORT}\`);
+    console.log(`Server running on http://localhost:${PORT}`);
   });
 }
 

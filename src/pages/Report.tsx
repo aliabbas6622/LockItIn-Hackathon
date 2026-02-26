@@ -9,7 +9,7 @@ export default function Report() {
   useEffect(() => {
     const fetchAnalysis = async () => {
       try {
-        const res = await fetch(\`/api/decisions/\${id}/analyze\`, { method: 'POST' });
+        const res = await fetch(`/api/decisions/${id}/analyze`, { method: 'POST' });
         const data = await res.json();
         setAnalysis(data);
       } catch (error) {
@@ -81,7 +81,7 @@ export default function Report() {
                   <span className="text-[#739a4c]">{analysis.budget_score}%</span>
                 </div>
                 <div className="h-1 bg-[#739a4c]/10 rounded-full">
-                  <div className="h-full bg-[#739a4c] rounded-full" style={{ width: \`\${analysis.budget_score}%\` }}></div>
+                  <div className="h-full bg-[#739a4c] rounded-full" style={{ width: `${analysis.budget_score}%` }}></div>
                 </div>
               </div>
               <div className="space-y-3">
@@ -90,7 +90,7 @@ export default function Report() {
                   <span className="text-[#739a4c]">{analysis.time_score}%</span>
                 </div>
                 <div className="h-1 bg-[#739a4c]/10 rounded-full">
-                  <div className="h-full bg-[#739a4c] rounded-full" style={{ width: \`\${analysis.time_score}%\` }}></div>
+                  <div className="h-full bg-[#739a4c] rounded-full" style={{ width: `${analysis.time_score}%` }}></div>
                 </div>
               </div>
               <div className="space-y-3">
@@ -99,7 +99,7 @@ export default function Report() {
                   <span className="text-[#739a4c]">{analysis.group_size_score}%</span>
                 </div>
                 <div className="h-1 bg-[#739a4c]/10 rounded-full">
-                  <div className="h-full bg-[#739a4c] rounded-full" style={{ width: \`\${analysis.group_size_score}%\` }}></div>
+                  <div className="h-full bg-[#739a4c] rounded-full" style={{ width: `${analysis.group_size_score}%` }}></div>
                 </div>
               </div>
             </div>

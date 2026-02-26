@@ -8,7 +8,7 @@ export default function Invite() {
   const [activities, setActivities] = useState<any[]>([]);
   const [participants, setParticipants] = useState<any[]>([]);
 
-  const inviteLink = \`\${window.location.origin}/decision/\${id}/respond\`;
+  const inviteLink = `${window.location.origin}/decision/${id}/respond`;
 
   useEffect(() => {
     const socket = io();
@@ -38,7 +38,7 @@ export default function Invite() {
   };
 
   const handleSeeResults = () => {
-    navigate(\`/decision/\${id}/report\`);
+    navigate(`/decision/${id}/report`);
   };
 
   return (

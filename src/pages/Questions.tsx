@@ -10,7 +10,7 @@ export default function Questions() {
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const res = await fetch(\`/api/decisions/\${id}/generate-questions\`, { method: 'POST' });
+        const res = await fetch(`/api/decisions/${id}/generate-questions`, { method: 'POST' });
         const data = await res.json();
         setQuestions(data);
       } catch (error) {
@@ -23,7 +23,7 @@ export default function Questions() {
   }, [id]);
 
   const handleNext = () => {
-    navigate(\`/decision/\${id}/invite\`);
+    navigate(`/decision/${id}/invite`);
   };
 
   return (

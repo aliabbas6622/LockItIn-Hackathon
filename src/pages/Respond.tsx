@@ -15,7 +15,7 @@ export default function Respond() {
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const res = await fetch(\`/api/decisions/\${id}/questions\`);
+        const res = await fetch(`/api/decisions/${id}/questions`);
         const data = await res.json();
         setQuestions(data);
       } catch (error) {
@@ -46,7 +46,7 @@ export default function Respond() {
     if (!name.trim()) return alert('Please enter your name');
     setSubmitting(true);
     try {
-      await fetch(\`/api/decisions/\${id}/respond\`, {
+      await fetch(`/api/decisions/${id}/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, answers }),
